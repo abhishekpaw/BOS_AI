@@ -1,0 +1,62 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    color: #111827;
+}
+
+.app-shell {
+    max-width: 960px;
+    margin: 40px auto;
+    padding: 24px;
+}
+
+.card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.chat-box {
+    min-height: 320px;
+    max-height: 500px;
+    overflow: auto;
+    white-space: pre-wrap;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    background: #fafafa;
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+}
+
+.controls input {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+}
+
+.controls button {
+    border: 0;
+    border-radius: 10px;
+    padding: 14px 18px;
+    background: #111827;
+    color: white;
+    cursor: pointer;
+}
+
+.toggles {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+}
