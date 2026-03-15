@@ -56,6 +56,30 @@ export default function ChatClient() {
         body: JSON.stringify({ message })
       });
 
+      if (!!res && res.status === 429) {
+
+        setResponse(
+            JSON.stringify({
+            error: "429 You exceeded your current quota, please check your plan and billing details."
+            }, null, 2)
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      if (!!res &&res.status === 500) {
+
+        setResponse(
+            JSON.stringify({
+            error: "500 Internal Server Error. Backend processing failed."
+            }, null, 2)
+        );
+
+        setLoading(false);
+        return;
+      }
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
 
@@ -150,6 +174,17 @@ export default function ChatClient() {
 
       const data = await res.json();
 
+      if (!!res && res.status === 429) {
+
+        setResponse(
+            JSON.stringify({
+            error: "429 You exceeded your current quota, please check your plan and billing details."
+            }, null, 2)
+        );
+
+        setLoading(false);
+        return;
+      }
       setUploadStatus(data.content || "Image processed");
 
     } catch (err) {
