@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_BASE || "https://bos-ai-p1c4.onrender.com/api" || "http://localhost:5000/api";
 
 export default function ChatClient() {
   const [message, setMessage] = useState("");
