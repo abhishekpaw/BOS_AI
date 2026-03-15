@@ -14,13 +14,11 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 export default function ChatClient() {
+
   const [message, setMessage] = useState("");
   const [response, setResponse] = useState("");
   const [citations, setCitations] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const [includeWeb, setIncludeWeb] = useState(true);
-  const [includeVectors, setIncludeVectors] = useState(true);
 
   const [uploadStatus, setUploadStatus] = useState("");
 
@@ -49,16 +47,13 @@ export default function ChatClient() {
     setLoading(true);
 
     try {
+
       const res = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          message,
-          includeWeb,
-          includeVectors
-        })
+        body: JSON.stringify({ message })
       });
 
       const reader = res.body.getReader();
@@ -67,6 +62,7 @@ export default function ChatClient() {
       let buffer = "";
 
       while (true) {
+
         const { value, done } = await reader.read();
         if (done) break;
 
@@ -76,6 +72,7 @@ export default function ChatClient() {
         buffer = parts.pop() || "";
 
         for (const part of parts) {
+
           if (!part.startsWith("data: ")) continue;
 
           const payload = JSON.parse(part.replace("data: ", ""));
@@ -85,8 +82,10 @@ export default function ChatClient() {
           if (payload.token) {
             setResponse((prev) => prev + payload.token);
           }
+
         }
       }
+
     } catch (err) {
       setResponse(`Error: ${err.message}`);
     }
@@ -97,6 +96,7 @@ export default function ChatClient() {
   /* ---------------- FILE UPLOAD ---------------- */
 
   const uploadFile = async (file) => {
+
     if (!file) return;
 
     if (file.type === "application/pdf") {
@@ -110,6 +110,7 @@ export default function ChatClient() {
     setUploadStatus("Uploading file...");
 
     try {
+
       const res = await fetch(`${API_BASE}/upload/file`, {
         method: "POST",
         headers: authHeaders,
@@ -119,14 +120,17 @@ export default function ChatClient() {
       const data = await res.json();
 
       setUploadStatus(data.message || "File uploaded");
+
     } catch (err) {
       setUploadStatus(`Upload failed: ${err.message}`);
     }
+
   };
 
-  /* ---------------- IMAGE ---------------- */
+  /* ---------------- IMAGE ANALYSIS ---------------- */
 
   const uploadImage = async (file) => {
+
     if (!file) return;
 
     setPreviewURL(URL.createObjectURL(file));
@@ -138,6 +142,7 @@ export default function ChatClient() {
     setUploadStatus("Analyzing image...");
 
     try {
+
       const res = await fetch(`${API_BASE}/vision/analyze`, {
         method: "POST",
         body: formData
@@ -146,14 +151,17 @@ export default function ChatClient() {
       const data = await res.json();
 
       setUploadStatus(data.content || "Image processed");
+
     } catch (err) {
       setUploadStatus(`Image failed: ${err.message}`);
     }
+
   };
 
   /* ---------------- OCR ---------------- */
 
   const uploadImageForOCR = async (file) => {
+
     if (!file) return;
 
     setPreviewURL(URL.createObjectURL(file));
@@ -165,6 +173,7 @@ export default function ChatClient() {
     setUploadStatus("Extracting text...");
 
     try {
+
       const res = await fetch(`${API_BASE}/vision/ocr`, {
         method: "POST",
         body: formData
@@ -173,40 +182,60 @@ export default function ChatClient() {
       const data = await res.json();
 
       setUploadStatus(data.text || "No text found");
+
     } catch (err) {
       setUploadStatus(`OCR failed: ${err.message}`);
     }
+
   };
 
   /* ---------------- CAMERA ---------------- */
 
   const startCamera = async () => {
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" }
+      });
 
       streamRef.current = stream;
       setCameraOpen(true);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 100);
+
     } catch (err) {
       setUploadStatus(`Camera error: ${err.message}`);
     }
+
   };
 
   const stopCamera = () => {
+
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
 
     setCameraOpen(false);
+
   };
 
   const capturePhoto = async () => {
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
+    if (!video || !canvas) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -216,73 +245,61 @@ export default function ChatClient() {
     ctx.drawImage(video, 0, 0);
 
     canvas.toBlob(async (blob) => {
+
+      if (!blob) return;
+
       const file = new File([blob], "camera.png", {
         type: "image/png"
       });
 
       await uploadImage(file);
+
     });
+
   };
 
   /* ---------------- UI ---------------- */
 
   return (
+
     <main className="app-shell">
+
       <section className="card">
+
         <div className="hero">
+
           <div>
+
             <span className="eyebrow">BOS AI Workspace</span>
+
             <h1>BOS AI</h1>
 
             <p className="hero-text">
-              Search the web, upload documents, analyze images, run OCR and use
-              your camera.
+              Search the web, upload documents, analyze images, run OCR and use your camera.
             </p>
+
           </div>
 
           <div className="status-pill">
             {loading ? "Generating…" : "Ready"}
           </div>
+
         </div>
 
         {/* CHAT BOX */}
 
         <div className="chat-box">
+
           <div className="chat-placeholder">
             {response || "Response will appear here"}
           </div>
+
         </div>
-
-        {/* CITATIONS */}
-
-        {citations.length > 0 && (
-          <div className="citations-box">
-            <div className="section-head">
-              <h3>Sources</h3>
-              <span>{citations.length}</span>
-            </div>
-
-            <ul>
-              {citations.map((c) => (
-                <li key={c.id}>
-                  <span className="citation-id">{c.id}</span>
-                  <div>
-                    <strong>{c.title || "Source"}</strong>
-                    {c.url && (
-                      <a href={c.url} target="_blank">
-                        Open
-                      </a>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         {/* SEARCH */}
 
         <div className="search-row">
+
           <input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -292,11 +309,13 @@ export default function ChatClient() {
           <button onClick={sendMessage}>
             <Search size={16} /> Search
           </button>
+
         </div>
 
         {/* TOOL NAV */}
 
         <div className="tool-nav">
+
           <button
             className={activeTool === "upload" ? "tool-btn active" : "tool-btn"}
             onClick={() => setActiveTool("upload")}
@@ -324,13 +343,17 @@ export default function ChatClient() {
           >
             <Camera size={16} /> Camera
           </button>
+
         </div>
 
         {/* TOOL PANEL */}
 
         <div className="tool-panel">
+
           {activeTool === "upload" && (
+
             <label className="upload-card">
+
               <span className="upload-title">
                 <Upload size={18} /> Upload File
               </span>
@@ -343,11 +366,15 @@ export default function ChatClient() {
                 type="file"
                 onChange={(e) => uploadFile(e.target.files?.[0])}
               />
+
             </label>
+
           )}
 
           {activeTool === "image" && (
+
             <label className="upload-card">
+
               <span className="upload-title">
                 <ImageIcon size={18} /> Image Understanding
               </span>
@@ -357,11 +384,15 @@ export default function ChatClient() {
                 accept="image/*"
                 onChange={(e) => uploadImage(e.target.files?.[0])}
               />
+
             </label>
+
           )}
 
           {activeTool === "ocr" && (
+
             <label className="upload-card">
+
               <span className="upload-title">
                 <ScanText size={18} /> OCR
               </span>
@@ -371,12 +402,17 @@ export default function ChatClient() {
                 accept="image/*"
                 onChange={(e) => uploadImageForOCR(e.target.files?.[0])}
               />
+
             </label>
+
           )}
 
           {activeTool === "camera" && (
+
             <div className="camera-card">
+
               <div className="camera-actions">
+
                 {!cameraOpen ? (
                   <button onClick={startCamera}>Open Camera</button>
                 ) : (
@@ -387,38 +423,45 @@ export default function ChatClient() {
                     </button>
                   </>
                 )}
+
               </div>
 
               {cameraOpen && (
+
                 <video
                   ref={videoRef}
                   className="camera-preview"
                   autoPlay
                   muted
+                  playsInline
                 />
+
               )}
 
               <canvas ref={canvasRef} style={{ display: "none" }} />
+
             </div>
+
           )}
+
         </div>
 
         {/* PREVIEW */}
 
         {previewURL && (
+
           <div className="preview-box">
+
             {previewType === "image" && (
               <img src={previewURL} className="camera-preview" />
             )}
 
             {previewType === "pdf" && (
-              <iframe
-                src={previewURL}
-                height="400"
-                className="camera-preview"
-              />
+              <iframe src={previewURL} height="400" className="camera-preview"/>
             )}
+
           </div>
+
         )}
 
         {/* STATUS */}
@@ -426,7 +469,9 @@ export default function ChatClient() {
         {uploadStatus && (
           <div className="status-banner">{uploadStatus}</div>
         )}
+
       </section>
+
     </main>
   );
 }
