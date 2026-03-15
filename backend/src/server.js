@@ -11,7 +11,7 @@ console.log("OPENAI KEY EXISTS:", !!process.env.OPENAI_API_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "http://localhost:3000" }));
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "http://localhost:3000" || "https://bos-ai-p1c4.onrender.com"}));
 app.use(express.json({ limit: "10mb" }));
 
 app.use("/api/health", healthRouter);
