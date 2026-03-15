@@ -5,6 +5,8 @@ import chatRouter from "./routes/chat.routes.js";
 import ingestRouter from "./routes/ingest.routes.js";
 import healthRouter from "./routes/health.routes.js";
 import searchRouter from "./routes/search.routes.js";
+import uploadRouter from "./routes/upload.routes.js";
+import visionRouter from "./routes/vision.routes.js";
 
 console.log("OPENAI KEY EXISTS:", !!process.env.OPENAI_API_KEY);
 
@@ -18,6 +20,8 @@ app.use("/api/health", healthRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/ingest", ingestRouter);
 app.use("/api/search", searchRouter);
+app.use("/api/upload", uploadRouter);
+app.use("/api/vision", visionRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);

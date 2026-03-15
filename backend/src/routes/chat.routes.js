@@ -17,39 +17,55 @@ router.post("/stream", async (req, res, next) => {
     let vectorMatches = [];
 
     if (includeWeb) {
-      try {
-        webResults = await searchWeb(message);
-      } catch (err) {
-        console.error("Tavily error:", err.response?.data || err.message);
-      }
+      webResults = await searchWeb(message);
     }
 
     if (includeVectors) {
-      try {
-        const queryEmbedding = await embedQuery(message);
-        vectorMatches = await queryVectors(queryEmbedding);
-      } catch (err) {
-        console.error("Pinecone/OpenAI embedding error:", err.response?.data || err.message);
-      }
+      const queryEmbedding = await embedQuery(message);
+      vectorMatches = await queryVectors(queryEmbedding);
     }
 
+    // Create citations
+    const citations = [
+      ...webResults.map((item, index) => ({
+        id: `W${index + 1}`,
+        title: item.title,
+        url: item.url,
+        type: "web"
+      })),
+      ...vectorMatches.map((match, index) => ({
+        id: `V${index + 1}`,
+        title:
+          match?.metadata?.filename ||
+          match?.metadata?.url ||
+          `Vector ${index + 1}`,
+        type: "vector"
+      }))
+    ];
+
+    // Build context for the LLM
     const context = [
-      ...webResults.map((item, index) => {
-        const title = item.title || `Web Result ${index + 1}`;
-        const url = item.url || "";
-        const content = item.content || "";
-        return `[WEB]\nTitle: ${title}\nURL: ${url}\nContent: ${content}`;
-      }),
-      ...vectorMatches.map((match) => {
-        const text = match?.metadata?.text || "";
-        const sourceType = match?.metadata?.sourceType || "vector";
-        return `[VECTOR]\nSource: ${sourceType}\nContent: ${text}`;
-      })
+      ...webResults.map(
+        (item, index) =>
+          `[W${index + 1}][WEB]\nTitle: ${item.title || ""}\nURL: ${
+            item.url || ""
+          }\nContent: ${item.content || ""}`
+      ),
+      ...vectorMatches.map(
+        (match, index) =>
+          `[V${index + 1}][VECTOR]\nContent: ${
+            match?.metadata?.text || ""
+          }`
+      )
     ].join("\n\n");
 
+    // Setup SSE streaming
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+
+    // Send citations first
+    res.write(`data: ${JSON.stringify({ citations })}\n\n`);
 
     await streamAnswer({
       message,
@@ -63,15 +79,15 @@ router.post("/stream", async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error("Chat stream error:", error.response?.data || error.message);
+    console.error("Chat error:", error);
 
     if (!res.headersSent) {
-      return res.status(error.status || error.response?.status || 500).json({
-        error: error.message || "Chat stream failed"
+      res.status(500).json({
+        error: error.message || "Chat failed"
       });
+    } else {
+      res.end();
     }
-
-    res.end();
   }
 });
 
